@@ -1,0 +1,254 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <iomanip>
+using namespace std;
+
+// Simple XOR encryption key
+const char KEY = 'K';
+
+// Function to encrypt or decrypt text using XOR
+string encryptDecrypt(string text) {
+    for (char &c : text) {
+        c = c ^ KEY;
+    }
+    return text;
+}
+
+// WeatherRecord class definition
+class WeatherRecord {
+private:
+    string location;
+    double temperature;
+    double humidity;
+    string condition;
+
+public:
+    // Create a new record
+    void createRecord() {
+        cout << "\nEnter Location: ";
+        cin.ignore();
+        getline(cin, location);
+
+        cout << "Enter Temperature (°C): ";
+        cin >> temperature;
+
+        cout << "Enter Humidity (%): ";
+        cin >> humidity;
+
+        cout << "Enter Weather Condition (e.g., Sunny, Rainy): ";
+        cin.ignore();
+        getline(cin, condition);
+
+        cout << "\nWeather Record Created Successfully!\n";
+    }
+
+    // Update temperature
+    void updateTemperature(double temp) {
+        temperature = temp;
+        cout << "\nTemperature Updated. New Value: " << temperature << " °C\n";
+    }
+
+    // Update humidity
+    void updateHumidity(double hum) {
+        humidity = hum;
+        cout << "\nHumidity Updated. New Value: " << humidity << " %\n";
+    }
+
+    // Show information
+    void showInfo() const {
+        cout << "\n--- Weather Information ---\n";
+        cout << "Location: " << location
+             << "\nTemperature: " << temperature << " °C"
+             << "\nHumidity: " << humidity << " %"
+             << "\nCondition: " << condition << endl;
+    }
+
+    string getLocation() const {
+        return location;
+    }
+
+    // Serialize object to a single line string
+    string serialize() const {
+        return location + "|" + to_string(temperature) + "|" +
+               to_string(humidity) + "|" + condition;
+    }
+
+    // Deserialize string back into an object
+    void deserialize(const string &data) {
+        size_t pos1 = data.find('|');
+        size_t pos2 = data.find('|', pos1 + 1);
+        size_t pos3 = data.find('|', pos2 + 1);
+
+        location = data.substr(0, pos1);
+        temperature = stod(data.substr(pos1 + 1, pos2 - pos1 - 1));
+        humidity = stod(data.substr(pos2 + 1, pos3 - pos2 - 1));
+        condition = data.substr(pos3 + 1);
+    }
+};
+
+// Function to save weather record to file
+void saveRecord(WeatherRecord record) {
+    ofstream fout("weatherdata.dat", ios::app);
+    string encrypted = encryptDecrypt(record.serialize());
+    fout << encrypted << endl;
+    fout.close();
+}
+
+// Function to find a record by location
+bool findRecord(string location, WeatherRecord &foundRec) {
+    ifstream fin("weatherdata.dat");
+    string line;
+
+    while (getline(fin, line)) {
+        string decrypted = encryptDecrypt(line);
+        WeatherRecord temp;
+        temp.deserialize(decrypted);
+
+        if (temp.getLocation() == location) {
+            foundRec = temp;
+            fin.close();
+            return true;
+        }
+    }
+
+    fin.close();
+    return false;
+}
+
+// Function to update a record
+void updateRecord(WeatherRecord updatedRec) {
+    ifstream fin("weatherdata.dat");
+    ofstream fout("temp.dat");
+    string line;
+
+    while (getline(fin, line)) {
+        string decrypted = encryptDecrypt(line);
+        WeatherRecord temp;
+        temp.deserialize(decrypted);
+
+        if (temp.getLocation() == updatedRec.getLocation())
+            fout << encryptDecrypt(updatedRec.serialize()) << endl;
+        else
+            fout << encryptDecrypt(temp.serialize()) << endl;
+    }
+
+    fin.close();
+    fout.close();
+
+    remove("weatherdata.dat");
+    rename("temp.dat", "weatherdata.dat");
+}
+
+// Main Program
+int main() {
+    int choice;
+
+    do {
+        cout << "\n=====================================\n";
+        cout << "     WEATHER INFORMATION SYSTEM\n";
+        cout << "=====================================\n";
+        cout << "1. Add New Weather Record\n";
+        cout << "2. Update Temperature\n";
+        cout << "3. Update Humidity\n";
+        cout << "4. View Weather Record\n";
+        cout << "5. Exit\n";
+        cout << "Enter choice: ";
+        cin >> choice;
+
+        if (choice == 1) {
+            WeatherRecord rec;
+            rec.createRecord();
+            saveRecord(rec);
+        }
+
+        else if (choice == 2) {
+            string location;
+            double temp;
+            cout << "\nEnter Location: ";
+            cin.ignore();
+            getline(cin, location);
+
+            WeatherRecord rec;
+            if (findRecord(location, rec)) {
+                cout << "Enter New Temperature (°C): ";
+                cin >> temp;
+                rec.updateTemperature(temp);
+                updateRecord(rec);
+            } else {
+                cout << "\nRecord Not Found!\n";
+            }
+        }
+
+        else if (choice == 3) {
+            string location;
+            double hum;
+            cout << "\nEnter Location: ";
+            cin.ignore();
+            getline(cin, location);
+
+            WeatherRecord rec;
+            if (findRecord(location, rec)) {
+                cout << "Enter New Humidity (%): ";
+                cin >> hum;
+                rec.updateHumidity(hum);
+                updateRecord(rec);
+            } else {
+                cout << "\nRecord Not Found!\n";
+            }
+        }
+
+        else if (choice == 4) {
+            string location;
+            cout << "\nEnter Location: ";
+            cin.ignore();
+            getline(cin, location);
+
+            WeatherRecord rec;
+            if (findRecord(location, rec)) {
+                rec.showInfo();
+            } else {
+                cout << "\nRecord Not Found!\n";
+            }
+        }
+
+    } while (choice != 5);
+
+    cout << "\nThank you for using the Weather Information System!\n";
+    return 0;
+}
+
+
+
+
+
+Sample Outputs (verbatim) 
+===================================== 
+WEATHER INFORMATION SYSTEM 
+===================================== 
+1. Add New Weather Record 
+2. Update Temperature 
+3. Update Humidity 
+4. View Weather Record 
+5. Exit 
+Enter choice: 1 
+Enter Location: New Delhi 
+Enter Temperature (°C): 32 
+Enter Humidity (%): 58 
+Enter Weather Condition (e.g., Sunny, Rainy): Sunny 
+Weather Record Created Successfully! 
+Enter choice: 2 
+Enter Location: New Delhi 
+Enter New Temperature (°C): 34 
+Temperature Updated. New Value: 34 °C 
+Enter choice: 4 
+Enter Location: New Delhi 
+Location: New Delhi 
+Temperature: 34 °C 
+Humidity: 58 % 
+Condition: Sunny 
+20 
+Invalid record example: 
+Enter choice: 4 
+Enter Location: Unknown City 
+Record Not Found!
